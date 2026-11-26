@@ -14,50 +14,77 @@ class _SelectedVideoList extends StatelessWidget {
     return SizedBox(
       height: context.screenWidth / 4,
       child: BlocBuilder<MergePageCubit, MergePageState>(
-        buildWhen: (previous, current) {
-          if (previous is MergePageLoaded && current is MergePageLoaded) {
-            return false;
-          }
-
-          return true;
-        },
         builder: (context, state) {
           switch (state) {
             case MergePageInitial():
-              return ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.zero,
-                shrinkWrap: true,
-                itemCount: 4,
-                itemBuilder: (_, index) {
-                  return _VideoThumbnail(
-                    animation: animation,
-                    index: index,
-                  );
-                },
-                separatorBuilder: (_, __) {
-                  return const SizedBox(width: AppPadding.medium);
-                },
-              );
+              return const SizedBox.shrink();
             case MergePageLoading():
               return const Center(
                 child: CircularProgressIndicator(),
               );
             case MergePageLoaded():
-              return ListView.separated(
+              return ReorderableListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: EdgeInsets.zero,
-                shrinkWrap: true,
+                buildDefaultDragHandles: false,
                 itemCount: state.videoMetadatas.length,
-                itemBuilder: (_, index) {
-                  return _VideoThumbnail(
-                    animation: animation,
-                    index: index,
-                    metadata: state.videoMetadatas[index],
-                  );
+                onReorder: (oldIndex, newIndex) {
+                  context
+                      .read<MergePageCubit>()
+                      .reorderVideos(oldIndex, newIndex);
                 },
-                separatorBuilder: (_, __) {
-                  return const SizedBox(width: AppPadding.medium);
+                itemBuilder: (context, index) {
+                  final metadata = state.videoMetadatas[index];
+                  final keyValue =
+                      '${metadata.file?.path ?? metadata.title}-$index';
+
+                  return SizedBox(
+                    key: ValueKey<String>(keyValue),
+                    width: context.screenWidth / 4,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _VideoThumbnail(
+                          animation: animation,
+                          index: index.clamp(0, 3).toInt(),
+                          metadata: metadata,
+                        ),
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: IconButton.filledTonal(
+                            tooltip: 'Remove video',
+                            visualDensity: VisualDensity.compact,
+                            onPressed: state.videoMetadatas.length > 2
+                                ? () {
+                                    context
+                                        .read<MergePageCubit>()
+                                        .removeVideoAt(index);
+                                  }
+                                : null,
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                        ),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: ReorderableDragStartListener(
+                            index: index,
+                            child: Material(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .secondaryContainer,
+                              shape: const CircleBorder(),
+                              child: const Padding(
+                                padding: EdgeInsets.all(4),
+                                child: Icon(Icons.drag_handle_rounded),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
                 },
               );
             case MergePageError():
