@@ -74,6 +74,9 @@ class _MergeViewState extends State<_MergeView> with TickerProviderStateMixin {
   late final AnimationController _animationController;
   late final Animation<double> _animation;
   late final AnimatedControlButtonController _animatedControlButtonController;
+  late final Future<void> _settingsInitialization;
+
+  List<VideoMetadata>? _lastRequestedVideoMetadatas;
 
   @override
   void initState() {
@@ -84,26 +87,41 @@ class _MergeViewState extends State<_MergeView> with TickerProviderStateMixin {
     );
     _animation = Tween<double>(begin: 0, end: 1).animate(_animationController);
     _animatedControlButtonController = AnimatedControlButtonController();
+    _settingsInitialization =
+        context.read<SettingsBottomSheetCubit>().init();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await context.read<SettingsBottomSheetCubit>().init();
+      await _settingsInitialization;
       if (!mounted) return;
 
       unawaited(_animationController.forward());
 
-      final videoMetadatas = context.read<AppNavigationBarCubit>().state.args;
-      if (videoMetadatas == null) return;
-      if (videoMetadatas is! List<VideoMetadata>) return;
-
-      final settingsBottomSheetState = context
-          .read<SettingsBottomSheetCubit>()
-          .state as SettingsBottomSheetLoaded;
-      await context.read<MergePageCubit>().loadVideoMetadata(
-            videoMetadatas,
-            isSoundOn: settingsBottomSheetState.isAudioOn,
-            playbackSpeed: settingsBottomSheetState.playbackSpeed.value,
-          );
+      final navigationState = context.read<AppNavigationBarCubit>().state;
+      final videoMetadatas = navigationState.args;
+      if (navigationState.page == NavigationBarPage.merge &&
+          videoMetadatas is List<VideoMetadata>) {
+        await _loadVideoMetadatas(videoMetadatas);
+      }
     });
+  }
+
+  Future<void> _loadVideoMetadatas(
+    List<VideoMetadata> videoMetadatas,
+  ) async {
+    if (identical(_lastRequestedVideoMetadatas, videoMetadatas)) return;
+    _lastRequestedVideoMetadatas = videoMetadatas;
+
+    await _settingsInitialization;
+    if (!mounted) return;
+
+    final settingsState =
+        context.read<SettingsBottomSheetCubit>().state as SettingsBottomSheetLoaded;
+
+    await context.read<MergePageCubit>().loadVideoMetadata(
+          videoMetadatas,
+          isSoundOn: settingsState.isAudioOn,
+          playbackSpeed: settingsState.playbackSpeed.value,
+        );
   }
 
   @override
@@ -114,34 +132,44 @@ class _MergeViewState extends State<_MergeView> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return _MergePageListener(
-      controller: _animationController,
-      child: Scaffold(
-        appBar: CustomAppBar(title: context.l10n.appName),
-        body: Padding(
-          padding: AppPadding.general,
-          child: Column(
-            children: [
-              Expanded(
-                child: _VideoPlayer(
-                  animation: _animation,
-                  animatedControlButtonController:
-                      _animatedControlButtonController,
+    return BlocListener<AppNavigationBarCubit, AppNavigationBarState>(
+      listener: (context, state) {
+        if (state.page != NavigationBarPage.merge) return;
+
+        final videoMetadatas = state.args;
+        if (videoMetadatas is! List<VideoMetadata>) return;
+
+        unawaited(_loadVideoMetadatas(videoMetadatas));
+      },
+      child: _MergePageListener(
+        controller: _animationController,
+        child: Scaffold(
+          appBar: CustomAppBar(title: context.l10n.appName),
+          body: Padding(
+            padding: AppPadding.general,
+            child: Column(
+              children: [
+                Expanded(
+                  child: _VideoPlayer(
+                    animation: _animation,
+                    animatedControlButtonController:
+                        _animatedControlButtonController,
+                  ),
                 ),
-              ),
-              const SizedBox(
-                height: AppPadding.medium,
-              ),
-              _ControlButtonRow(
-                animation: _animation,
-              ),
-              const SizedBox(
-                height: AppPadding.medium,
-              ),
-              _SelectedVideoList(
-                animation: _animation,
-              ),
-            ],
+                const SizedBox(
+                  height: AppPadding.medium,
+                ),
+                _ControlButtonRow(
+                  animation: _animation,
+                ),
+                const SizedBox(
+                  height: AppPadding.medium,
+                ),
+                _SelectedVideoList(
+                  animation: _animation,
+                ),
+              ],
+            ),
           ),
         ),
       ),
