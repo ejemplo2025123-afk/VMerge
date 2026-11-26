@@ -73,6 +73,7 @@ objectbox:
   output_dir: src/core/gen/
 
 flutter:
+  generate: true
   uses-material-design: true
 
   assets:
