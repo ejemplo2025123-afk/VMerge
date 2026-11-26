@@ -38,7 +38,7 @@ jobs:
         run: flutter pub get
 
       - name: Build development debug APK
-        run: flutter build apk --debug --flavor development
+        run: flutter build apk --debug --flavor development --target lib/main_development.dart
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
