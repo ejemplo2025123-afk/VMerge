@@ -270,7 +270,9 @@ final class MergePageCubit extends Cubit<MergePageState> {
     switch (state) {
       case final MergePageLoaded state:
         if (_videoPlayerServices.first.position !=
-            _videoPlayerServices.first.duration) return;
+            _videoPlayerServices.first.duration) {
+          return;
+        }
 
         final oldVideoPlayerService =
             _videoPlayerServices.add(getIt<VideoPlayerService>());

@@ -46,7 +46,7 @@ class _SelectedVideoList extends StatelessWidget {
                       children: [
                         _VideoThumbnail(
                           animation: animation,
-                          index: index.clamp(0, 3).toInt(),
+                          index: index.clamp(0, 3),
                           metadata: metadata,
                         ),
                         Positioned(

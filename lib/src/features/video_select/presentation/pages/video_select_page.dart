@@ -2,9 +2,8 @@
 // Use of this source code is governed by a GPL-style license that can be found
 // in the LICENSE file.
 
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:vmerge/src/components/components.dart';
 import 'package:vmerge/src/core/core.dart';
 import 'package:vmerge/src/features/error/error.dart';
@@ -73,34 +72,6 @@ class _PreviewVideoViewState extends State<_PreviewVideoView>
           selectedAssets: _selectedAssets,
           requestType: RequestType.video,
           specialPickerType: SpecialPickerType.noPreview,
-          pickerTheme: context.theme.copyWith(
-            appBarTheme: context.theme.appBarTheme.copyWith(
-              systemOverlayStyle: SystemUiOverlayStyle(
-                systemNavigationBarColor:
-                    context.colorScheme.secondaryContainer,
-                systemNavigationBarDividerColor:
-                    context.colorScheme.secondaryContainer,
-                systemNavigationBarIconBrightness:
-                    context.theme.brightness == Brightness.light
-                        ? Brightness.dark
-                        : Brightness.light,
-              ),
-            ),
-            bottomAppBarTheme: context.theme.bottomAppBarTheme.copyWith(
-              color: context.colorScheme.secondaryContainer,
-            ),
-            iconTheme: context.theme.iconTheme.copyWith(
-              color: context.colorScheme.primary,
-            ),
-            colorScheme: context.colorScheme.copyWith(
-              secondary: context.colorScheme.primary,
-            ),
-            textTheme: context.theme.textTheme.copyWith(
-              bodyLarge: context.theme.textTheme.bodyLarge!.copyWith(
-                color: context.colorScheme.onPrimary,
-              ),
-            ),
-          ),
           textDelegate: _getAssetPickerTextDelegateFromLocale(
             Localizations.localeOf(context),
           ),

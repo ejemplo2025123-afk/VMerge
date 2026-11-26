@@ -8,7 +8,7 @@ import 'dart:io';
 
 import 'package:bloc/bloc.dart';
 import 'package:ffmpeg_service/ffmpeg_service.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:in_app_review_service/in_app_review_service.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -185,7 +185,7 @@ final class SaveBottomSheetCubit extends Cubit<SaveBottomSheetState> {
       emit(const SaveBottomSheetSaving());
       await Future<void>.delayed(_kMinStatusDuration);
       if (state case SaveBottomSheetCancelled()) return;
-      await ImageGallerySaver.saveFile(outputVideoDir);
+      await ImageGallerySaverPlus.saveFile(outputVideoDir);
     } catch (error, stackTrace) {
       emit(
         SaveBottomSheetError(

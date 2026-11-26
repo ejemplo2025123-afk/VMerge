@@ -8,12 +8,12 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:collection/collection.dart';
-import 'package:ffmpeg_kit_flutter_full_gpl/ffmpeg_kit.dart';
-import 'package:ffmpeg_kit_flutter_full_gpl/ffmpeg_kit_config.dart';
-import 'package:ffmpeg_kit_flutter_full_gpl/ffprobe_kit.dart';
-import 'package:ffmpeg_kit_flutter_full_gpl/media_information_session.dart';
-import 'package:ffmpeg_kit_flutter_full_gpl/statistics.dart';
-import 'package:ffmpeg_kit_flutter_full_gpl/stream_information.dart';
+import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit_config.dart';
+import 'package:ffmpeg_kit_flutter_new/ffprobe_kit.dart';
+import 'package:ffmpeg_kit_flutter_new/media_information_session.dart';
+import 'package:ffmpeg_kit_flutter_new/statistics.dart';
+import 'package:ffmpeg_kit_flutter_new/stream_information.dart';
 import 'package:ffmpeg_service/ffmpeg_service.dart';
 import 'package:ffmpeg_service/src/video_detail.dart';
 import 'package:flutter/foundation.dart';
