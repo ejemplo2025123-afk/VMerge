@@ -39,7 +39,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/gradle-build-action@v3
         with:
-          gradle-version: 7.5.1
+          gradle-version: 7.6.3
 
       - name: Build debug APK with Gradle
         working-directory: android
