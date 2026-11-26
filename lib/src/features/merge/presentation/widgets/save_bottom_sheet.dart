@@ -200,7 +200,7 @@ class _ProgressIndicator extends StatelessWidget {
             children: [
               CircularProgressIndicator(
                 backgroundColor:
-                    context.theme.iconTheme.color?.withOpacity(0.7),
+                    context.theme.iconTheme.color?.withValues(alpha: 0.7),
                 strokeWidth: 8,
                 value: switch (state) {
                   SaveBottomSheetMerging() => state.progress / 100,

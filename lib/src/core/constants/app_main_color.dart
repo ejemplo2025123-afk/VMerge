@@ -3,7 +3,7 @@
 // in the LICENSE file.
 
 import 'package:collection/collection.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// An enum that provides constant main color values to use app-wide.
 enum AppMainColor {

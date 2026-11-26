@@ -2,7 +2,7 @@
 // Use of this source code is governed by a GPL-style license that can be found
 // in the LICENSE file.
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:vmerge/bootstrap.dart';
 import 'package:vmerge/src/core/core.dart';
