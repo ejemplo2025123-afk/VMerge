@@ -31,24 +31,19 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: "3.24.5"
           cache: true
 
       - name: Install Flutter dependencies
         run: flutter pub get
 
-      - name: Set up Gradle
-        uses: gradle/gradle-build-action@v3
-        with:
-          gradle-version: 7.6.3
-
-      - name: Build debug APK with Gradle
-        working-directory: android
-        run: gradle assembleDebug
+      - name: Build development debug APK
+        run: flutter build apk --debug --flavor development
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: vmerge-debug-apk
-          path: android/app/build/outputs/apk/**/*.apk
+          path: build/app/outputs/flutter-apk/app-development-debug.apk
           if-no-files-found: error
           retention-days: 14
