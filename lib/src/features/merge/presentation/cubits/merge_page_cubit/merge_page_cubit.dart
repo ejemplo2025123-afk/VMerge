@@ -32,6 +32,13 @@ final class MergePageCubit extends Cubit<MergePageState> {
       return;
     }
 
+    for (final videoPlayerService in _videoPlayerServices) {
+      videoPlayerService
+        ..removeListener(_videoPlayerListener)
+        ..dispose();
+    }
+    _videoPlayerServices.length = 0;
+
     emit(const MergePageLoading());
 
     final volume = isSoundOn ? 1.0 : 0.0;
@@ -40,11 +47,8 @@ final class MergePageCubit extends Cubit<MergePageState> {
       for (var i = 0; i < _videoPlayerServices.maxLength; i++) {
         _videoPlayerServices.add(getIt<VideoPlayerService>());
       }
-      // It is important to load the videos in parallel to avoid any delay.
+
       await Future.wait([
-        // To reduce loading time, it is necessary to load only the first two
-        // videos. If there are more than two videos, the rest will be loaded
-        // when the first two videos are played.
         for (var i = 0; i < _videoPlayerServices.maxLength; i++)
           _videoPlayerServices[i].loadFile(
             metadatas[i].file!,
@@ -89,6 +93,62 @@ final class MergePageCubit extends Cubit<MergePageState> {
     }
   }
 
+  void reorderVideos(int oldIndex, int newIndex) {
+    final currentState = state;
+    if (currentState is! MergePageLoaded) return;
+    if (oldIndex < 0 ||
+        oldIndex >= currentState.videoMetadatas.length ||
+        newIndex < 0 ||
+        newIndex > currentState.videoMetadatas.length) {
+      return;
+    }
+    if (newIndex > oldIndex) newIndex--;
+
+    final videoMetadatas =
+        List<VideoMetadata>.of(currentState.videoMetadatas);
+    final movedVideo = videoMetadatas.removeAt(oldIndex);
+    videoMetadatas.insert(newIndex, movedVideo);
+
+    final activeVideoMetadata =
+        currentState.videoMetadatas[currentState.activeVideoIndex];
+    final activeVideoIndex = videoMetadatas.indexOf(activeVideoMetadata);
+
+    emit(
+      currentState.copyWith(
+        videoMetadatas: videoMetadatas,
+        activeVideoIndex: activeVideoIndex,
+      ),
+    );
+  }
+
+  void removeVideoAt(int index) {
+    final currentState = state;
+    if (currentState is! MergePageLoaded) return;
+    if (currentState.videoMetadatas.length <= 2) return;
+    if (index < 0 || index >= currentState.videoMetadatas.length) return;
+
+    final videoMetadatas =
+        List<VideoMetadata>.of(currentState.videoMetadatas);
+    videoMetadatas.removeAt(index);
+
+    var activeVideoIndex = currentState.activeVideoIndex;
+    if (index < activeVideoIndex) {
+      activeVideoIndex--;
+    } else if (index == activeVideoIndex) {
+      activeVideoIndex--;
+      if (activeVideoIndex < 0) {
+        activeVideoIndex = videoMetadatas.length - 1;
+      }
+    }
+
+    emit(
+      currentState.copyWith(
+        videoMetadatas: videoMetadatas,
+        activeVideoIndex: activeVideoIndex,
+      ),
+    );
+  }
+
   Future<void> playVideo() async {
     switch (state) {
       case final MergePageLoaded state:
@@ -109,7 +169,6 @@ final class MergePageCubit extends Cubit<MergePageState> {
               stackTrace: stackTrace,
             ),
           );
-          // Restores last success state.
           emit(state);
         }
       default:
@@ -137,7 +196,6 @@ final class MergePageCubit extends Cubit<MergePageState> {
               stackTrace: stackTrace,
             ),
           );
-          // Restores last success state.
           emit(state);
         }
       default:
@@ -169,7 +227,6 @@ final class MergePageCubit extends Cubit<MergePageState> {
               stackTrace: stackTrace,
             ),
           );
-          // Restores last success state.
           emit(state);
         }
       default:
@@ -202,7 +259,6 @@ final class MergePageCubit extends Cubit<MergePageState> {
               stackTrace: stackTrace,
             ),
           );
-          // Restores last success state.
           emit(state);
         }
       default:
@@ -232,25 +288,20 @@ final class MergePageCubit extends Cubit<MergePageState> {
           ),
         );
 
-        // Add the listener to the current video player service.
         _videoPlayerServices.first.addListener(_videoPlayerListener);
 
-        // Dispose the old video player service.
         oldVideoPlayerService?.removeListener(_videoPlayerListener);
         oldVideoPlayerService?.dispose();
 
-        // Load the next video.
         final nextVideoIndex =
             (activeVideoIndex + 1) % state.videoMetadatas.length;
         _videoPlayerServices.last.loadFile(
           state.videoMetadatas[nextVideoIndex].file!,
-          // TODO(all): Add volume getter to the VideoPlayerService.
           volume: state.videoPlayerController.value.volume,
         );
         _videoPlayerServices.last
             .setPlaybackSpeed(_videoPlayerServices.first.playbackSpeed);
 
-        // Play the current video.
         if (activeVideoIndex != 0) playVideo();
       default:
         return;
