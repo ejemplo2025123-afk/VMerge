@@ -38,6 +38,9 @@ class _PreviewVideoViewState extends State<_PreviewVideoView>
   late final AnimationController _animationController;
   late final Animation<double> _animation;
 
+  List<AssetEntity> _selectedAssets = <AssetEntity>[];
+  bool _isPickerOpen = false;
+
   @override
   void initState() {
     super.initState();
@@ -57,16 +60,20 @@ class _PreviewVideoViewState extends State<_PreviewVideoView>
   }
 
   Future<void> _openAssetPicker() async {
+    if (_isPickerOpen) return;
+
+    _isPickerOpen = true;
     List<AssetEntity>? assets;
+
     try {
       assets = await AssetPicker.pickAssets(
         context,
         pickerConfig: AssetPickerConfig(
-          maxAssets: 4,
+          maxAssets: 100,
+          selectedAssets: _selectedAssets,
           requestType: RequestType.video,
           specialPickerType: SpecialPickerType.noPreview,
           pickerTheme: context.theme.copyWith(
-            // AppBarTheme is used for the app bar in the picker.
             appBarTheme: context.theme.appBarTheme.copyWith(
               systemOverlayStyle: SystemUiOverlayStyle(
                 systemNavigationBarColor:
@@ -79,20 +86,15 @@ class _PreviewVideoViewState extends State<_PreviewVideoView>
                         : Brightness.light,
               ),
             ),
-            // BottomAppBarTheme is used for the bottom bar in the picker.
             bottomAppBarTheme: context.theme.bottomAppBarTheme.copyWith(
               color: context.colorScheme.secondaryContainer,
             ),
-            // IconTheme is used for the loading indicator and the icons in the
-            // picker.
             iconTheme: context.theme.iconTheme.copyWith(
               color: context.colorScheme.primary,
             ),
-            // ColorScheme is used for the select indicator in the picker.
             colorScheme: context.colorScheme.copyWith(
               secondary: context.colorScheme.primary,
             ),
-            // TextTheme is used for the index and confirm text in the picker.
             textTheme: context.theme.textTheme.copyWith(
               bodyLarge: context.theme.textTheme.bodyLarge!.copyWith(
                 color: context.colorScheme.onPrimary,
@@ -105,8 +107,11 @@ class _PreviewVideoViewState extends State<_PreviewVideoView>
         ),
       );
     } catch (error, stackTrace) {
-      assets = null;
-      if (!mounted) return;
+      if (!mounted) {
+        _isPickerOpen = false;
+        return;
+      }
+
       context.read<ErrorCubit>().caught(
             message: context.l10n.couldNotOpenAssetPickerMessage,
             error: error,
@@ -114,7 +119,22 @@ class _PreviewVideoViewState extends State<_PreviewVideoView>
           );
     }
 
+    _isPickerOpen = false;
+
     if (!mounted) return;
+
+    if (assets == null) {
+      if (_selectedAssets.isNotEmpty) {
+        context
+            .read<AppNavigationBarCubit>()
+            .updatePage(NavigationBarPage.merge);
+      } else {
+        await context.read<VideoSelectPageCubit>().updateVideos(null);
+      }
+      return;
+    }
+
+    _selectedAssets = List<AssetEntity>.of(assets);
     await context.read<VideoSelectPageCubit>().updateVideos(assets);
   }
 
@@ -133,74 +153,83 @@ class _PreviewVideoViewState extends State<_PreviewVideoView>
   Widget build(BuildContext context) {
     final l10n = context.l10n;
 
-    return _VideoSelectPageListener(
-      child: Scaffold(
-        appBar: CustomAppBar(title: l10n.appName),
-        body: Padding(
-          padding: AppPadding.general,
-          child: BlocConsumer<VideoSelectPageCubit, VideoSelectPageState>(
-            listener: (context, state) {
-              switch (state) {
-                case VideoSelectPageLoading():
-                  _openAssetPicker();
-                  _animationController.reset();
-                case VideoSelectPageLoaded():
-                  context.read<AppNavigationBarCubit>().updatePage(
-                        NavigationBarPage.merge,
-                        args: state.metadataList,
-                      );
-                case VideoSelectPageError():
-                  WidgetsBinding.instance.addPostFrameCallback(
-                    (_) => _animationController.forward(),
-                  );
-              }
-            },
-            builder: (context, state) {
-              return switch (state) {
-                VideoSelectPageLoading() => Center(
-                    child: SizedBox.square(
-                      dimension: context.screenWidth / 4 / 3,
-                      child: const CircularProgressIndicator(),
+    return BlocListener<AppNavigationBarCubit, AppNavigationBarState>(
+      listenWhen: (previous, current) {
+        return previous.page != current.page &&
+            current.page == NavigationBarPage.previewVideo;
+      },
+      listener: (context, state) {
+        context.read<VideoSelectPageCubit>().resetVideos();
+      },
+      child: _VideoSelectPageListener(
+        child: Scaffold(
+          appBar: CustomAppBar(title: l10n.appName),
+          body: Padding(
+            padding: AppPadding.general,
+            child: BlocConsumer<VideoSelectPageCubit, VideoSelectPageState>(
+              listener: (context, state) {
+                switch (state) {
+                  case VideoSelectPageLoading():
+                    _openAssetPicker();
+                    _animationController.reset();
+                  case VideoSelectPageLoaded():
+                    context.read<AppNavigationBarCubit>().updatePage(
+                          NavigationBarPage.merge,
+                          args: state.metadataList,
+                        );
+                  case VideoSelectPageError():
+                    WidgetsBinding.instance.addPostFrameCallback(
+                      (_) => _animationController.forward(),
+                    );
+                }
+              },
+              builder: (context, state) {
+                return switch (state) {
+                  VideoSelectPageLoading() => Center(
+                      child: SizedBox.square(
+                        dimension: context.screenWidth / 4 / 3,
+                        child: const CircularProgressIndicator(),
+                      ),
                     ),
-                  ),
-                VideoSelectPageLoaded() => const SizedBox.shrink(),
-                VideoSelectPageError() => AnimatedBuilder(
-                    animation: _animation,
-                    builder: (context, child) {
-                      return FadeTransition(
-                        opacity: CurvedAnimation(
-                          parent: _animation,
-                          curve: const Interval(
-                            0,
-                            1,
-                            curve: Curves.easeOut,
-                          ),
-                        ),
-                        child: SlideTransition(
-                          position: Tween(
-                            begin: const Offset(0, -0.05),
-                            end: Offset.zero,
-                          ).animate(
-                            CurvedAnimation(
-                              parent: _animation,
-                              curve: const Interval(
-                                0,
-                                1,
-                                curve: Curves.easeOut,
-                              ),
+                  VideoSelectPageLoaded() => const SizedBox.shrink(),
+                  VideoSelectPageError() => AnimatedBuilder(
+                      animation: _animation,
+                      builder: (context, child) {
+                        return FadeTransition(
+                          opacity: CurvedAnimation(
+                            parent: _animation,
+                            curve: const Interval(
+                              0,
+                              1,
+                              curve: Curves.easeOut,
                             ),
                           ),
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: NoVideoWarning(
-                      onPressed:
-                          context.read<VideoSelectPageCubit>().resetVideos,
+                          child: SlideTransition(
+                            position: Tween(
+                              begin: const Offset(0, -0.05),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: _animation,
+                                curve: const Interval(
+                                  0,
+                                  1,
+                                  curve: Curves.easeOut,
+                                ),
+                              ),
+                            ),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: NoVideoWarning(
+                        onPressed:
+                            context.read<VideoSelectPageCubit>().resetVideos,
+                      ),
                     ),
-                  ),
-              };
-            },
+                };
+              },
+            ),
           ),
         ),
       ),
